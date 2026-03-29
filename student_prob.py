@@ -3,7 +3,20 @@ import pandas as pd
 import numpy as np
 import math
 import random
-from scipy import stats
+# Pure math implementations replacing scipy
+def norm_cdf(z):
+    """Standard normal CDF using error function approximation."""
+    return 0.5 * (1 + math.erf(z / math.sqrt(2)))
+
+def binom_pmf(k, n, p):
+    """Binomial PMF."""
+    k, n = int(k), int(n)
+    return math.comb(n, k) * (p**k) * ((1-p)**(n-k))
+
+def binom_cdf(k, n, p):
+    """Binomial CDF — sum of PMF from 0 to k."""
+    k, n = int(k), int(n)
+    return sum(binom_pmf(i, n, p) for i in range(k+1))
 
 st.set_page_config(page_title="EpiLab Student: Probability & Health", layout="wide")
 
@@ -487,7 +500,7 @@ BMI, lab values. It is defined by its mean (μ) and standard deviation (σ).
             n_x    = st.number_input("Value of interest (x)", value=140.0, key=f"l_nx_{lrc}")
         with col2:
             z = round((n_x - n_mean)/n_sd, 2)
-            p_below = round(stats.norm.cdf(z), 4)
+            p_below = round(norm_cdf(z), 4)
             p_above = round(1 - p_below, 4)
             st.metric("Z-score", z)
             st.metric(f"P(X ≤ {n_x})", f"{round(p_below*100,1)}%")
@@ -525,9 +538,9 @@ number of positive tests in a sample, number of disease cases in a fixed-size gr
             b_mean = round(b_n * b_p, 2)
             b_var  = round(b_n * b_p * (1-b_p), 2)
             b_sd   = round(math.sqrt(b_var), 2)
-            p_exact= round(stats.binom.pmf(b_k, b_n, b_p), 4)
-            p_le_k = round(stats.binom.cdf(b_k, b_n, b_p), 4)
-            p_ge_k = round(1 - stats.binom.cdf(b_k-1, b_n, b_p), 4)
+            p_exact= round(binom_pmf(b_k, b_n, b_p), 4)
+            p_le_k = round(binom_cdf(b_k, b_n, b_p), 4)
+            p_ge_k = round(1 - binom_cdf(b_k-1, b_n, b_p), 4)
             st.metric("Expected value (mean)", f"{b_mean}")
             st.metric("Standard deviation", f"{b_sd}")
             st.metric(f"P(X = {b_k})", f"{round(p_exact*100,2)}%")
@@ -922,15 +935,15 @@ with tab_practice:
 
             elif d["type"] == "normal":
                 z = round((d["x"]-d["mean"])/d["sd"],3)
-                p_b = round(stats.norm.cdf(z)*100,1)
-                p_a = round((1-stats.norm.cdf(z))*100,1)
+                p_b = round(norm_cdf(z)*100,1)
+                p_a = round((1-norm_cdf(z))*100,1)
                 col1,col2,col3 = st.columns(3)
                 col1.metric("Z-score",z); col2.metric(f"P(X ≤ {d['x']})",f"{p_b}%"); col3.metric(f"P(X > {d['x']})",f"{p_a}%")
 
             elif d["type"] == "binomial":
-                p_ex = round(stats.binom.pmf(d["k"],d["n"],d["p"])*100,2)
-                p_le = round(stats.binom.cdf(d["k"],d["n"],d["p"])*100,2)
-                p_ge = round((1-stats.binom.cdf(d["k"]-1,d["n"],d["p"]))*100,2)
+                p_ex = round(binom_pmf(d["k"],d["n"],d["p"])*100,2)
+                p_le = round(binom_cdf(d["k"],d["n"],d["p"])*100,2)
+                p_ge = round((1-binom_cdf(d["k"]-1,d["n"],d["p"]))*100,2)
                 col1,col2,col3,col4 = st.columns(4)
                 col1.metric("E(X)",round(d["n"]*d["p"],1))
                 col2.metric(f"P(X={d['k']})",f"{p_ex}%")
